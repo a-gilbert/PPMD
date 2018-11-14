@@ -1,4 +1,5 @@
 """Various enums and dicts to define the meta-state of a simulation."""
+import numpy as np
 from enum import Enum
 
 
@@ -55,7 +56,8 @@ class GPK(Enum):
 	OUTFN = 12
 	DT = 13
 	NPART = 14
-	GPUS = 15
+	NSPEC = 15
+	GPUS = 16
 
 
 class GlobalParams(dict):
@@ -106,7 +108,9 @@ class GlobalParams(dict):
 					self[GPK.BBOX].append([float(l[4]), float(l[5])])
 				elif self[GPK.DIMS] == 1:
 					self[GPK.BBOX].append([float(l[2])])
-					self[GPK.BBOX].append([float(l[3])]) 
+					self[GPK.BBOX].append([float(l[3])])
+				for i in range(len(self[GPK.DIMS])):
+					self[GPK.BBOX][i] = np.array(self[GPK.BBOX][i])
 			elif l[0] == "SpaceBC":
 				if l[2] == "Fixed":
 					self[GPK.SBTYPE] = SpatialBoundaries.FIXED
@@ -160,6 +164,8 @@ class GlobalParams(dict):
 					self[GPK.GPUS] = False
 			elif l[0] == "NParticles":
 				self[GPK.NPART] = int(l[2])
+			elif l[0] == "NSpec":
+				self[GPK.NSPEC] = int(l[2])
 			else:
 				pass
 
