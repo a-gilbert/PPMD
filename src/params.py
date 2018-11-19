@@ -136,6 +136,8 @@ class GlobalParams(dict):
 					self[GPK.PIC] = ParticleIC.RANDOM
 				else:
 					self[GPK.PIC] = [ParticleIC.CUSTOM, l[2]]
+					self[GPK.NPART] = 0
+					self[GPK.NSPEC] = 0
 			elif l[0] == "Refinement":
 				self[GPK.RCRIT] = []
 				for i in range(2, len(l), 2):
@@ -162,12 +164,12 @@ class GlobalParams(dict):
 					self[GPK.GPUS] = True
 				elif l[2] == "False":
 					self[GPK.GPUS] = False
-			elif l[0] == "NParticles":
+			elif l[0] == "NParticles" and self[GPK.PIC]==ParticleIC.RANDOM:
 				self[GPK.NPART] = int(l[2])
-			elif l[0] == "NSpec":
+			elif l[0] == "NSpec" and self[GPK.PIC]==ParticleIC.RANDOM:
 				self[GPK.NSPEC] = int(l[2])
 			else:
-				pass
+				raise Exception("Parameter not used", l[0])
 
 
 	def set_global(self, comm, rank):
