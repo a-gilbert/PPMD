@@ -1,12 +1,12 @@
 """Various enums and dicts to define the meta-state of a simulation."""
 import numpy as np
 from enum import Enum
+from region import GlobalBbox
 
 
 class RefineCriteria(Enum):
 	MAX_DEPTH = 1
 	MAX_DENS = 2
-	MAX_LENGTH = 3
 
 
 class ForceType(Enum):
@@ -21,8 +21,9 @@ class Units(Enum):
 
 
 class PartitionScheme(Enum):
-	GRID = 0
-	ORB = 1
+	NONE = 0
+	TREE = 1
+	FOREST = 2
 
 
 class SpatialBoundaries(Enum):
@@ -52,12 +53,15 @@ class GPK(Enum):
 	RCRIT = 8
 	NSTEPS = 9
 	CSTEP = 10
-	OUTFREQ = 11
-	OUTFN = 12
-	DT = 13
-	NPART = 14
-	NSPEC = 15
-	GPUS = 16
+	OUTUN = 11
+	OUTFREQ = 12
+	OUTFN = 13
+	DT = 14
+	NPART = 15
+	NSPEC = 16
+	GPUS = 17
+	ENERGY = 18
+	ENERGYF = 19
 
 
 class GlobalParams(dict):
@@ -99,18 +103,18 @@ class GlobalParams(dict):
 			elif l[0] == "Dimensions":
 				self[GPK.DIMS] = int(l[2])
 			elif l[0] == "Box":
-				self[GPK.BBOX] = []
 				if self[GPK.DIMS] == 3:
-					self[GPK.BBOX].append([float(l[2]), float(l[3]), float(l[4])])
-					self[GPK.BBOX].append([float(l[5]), float(l[6]), float(l[7])])
+					lleft = [float(l[2]), float(l[3]), float(l[4])]
+					uright = [float(l[5]), float(l[6]), float(l[7])]
 				elif self[GPK.DIMS] == 2:
-					self[GPK.BBOX].append([float(l[2]), float(l[3])])
-					self[GPK.BBOX].append([float(l[4]), float(l[5])])
+					lleft = [float(l[2]), float(l[3])]
+					uright = [float(l[4]), float(l[5])]
 				elif self[GPK.DIMS] == 1:
-					self[GPK.BBOX].append([float(l[2])])
-					self[GPK.BBOX].append([float(l[3])])
-				for i in range(len(self[GPK.DIMS])):
-					self[GPK.BBOX][i] = np.array(self[GPK.BBOX][i])
+					lleft = [float(l[2])]
+					uright = [float(l[3])]
+				#we will turn this into a more useful object after setting it
+				#globally.
+				self[GPK.BBOX] = [lleft, uright]
 			elif l[0] == "SpaceBC":
 				if l[2] == "Fixed":
 					self[GPK.SBTYPE] = SpatialBoundaries.FIXED
@@ -127,15 +131,17 @@ class GlobalParams(dict):
 				if l[2] == "FMM":
 					self[GPK.FTYPE] = ForceType.FMM
 			elif l[0] == "PartitionType":
-				if l[2] == "Grid":
-					self[GPK.PSCHEME] = PartitionScheme.GRID
-				if l[2] == "ORB":
-					self[GPK.PSCHEME] = PartitionScheme.ORB
+				if l[2] == "None":
+					self[GPK.PSCHEME] = PartitionScheme.NONE
+				if l[2] == "Tree":
+					self[GPK.PSCHEME] = PartitionScheme.TREE
+				if l[2] == "Forest":
+					self[GPK.PSCHEME] = PartitionScheme.FOREST
 			elif l[0] == "ParticleIC":
 				if l[2] == "Random":
 					self[GPK.PIC] = ParticleIC.RANDOM
 				else:
-					self[GPK.PIC] = [ParticleIC.CUSTOM, l[2]]
+					self[GPK.PIC] = (ParticleIC.CUSTOM, l[2])
 					self[GPK.NPART] = 0
 					self[GPK.NSPEC] = 0
 			elif l[0] == "Refinement":
@@ -147,12 +153,15 @@ class GlobalParams(dict):
 					elif l[i] == "Density":
 						self[GPK.RCRIT].append([RefineCriteria.MAX_DENS,
 						 float(l[i+1])])
-					elif l[i] == "Length":
-						self[GPK.RCRIT].append([RefineCriteria.MAX_LENGTH,
-						 float(l[i+1])])
+				self[GPK.RCRIT] = tuple(self[GPK.RCRIT])
 			elif l[0] == "NSteps":
 				self[GPK.NSTEPS] = int(l[2])
 				self[GPK.CSTEP] = 0
+			elif l[0] == "OutUnited":
+				if l[2] == "True":
+					self[GPK.OUTUN] = True
+				if l[2] == "False":
+					self[GPK.OUTUN] = False
 			elif l[0] == "OutFreq":
 				self[GPK.OUTFREQ] = int(l[2])
 			elif l[0] == "OutFn":
@@ -168,6 +177,15 @@ class GlobalParams(dict):
 				self[GPK.NPART] = int(l[2])
 			elif l[0] == "NSpec" and self[GPK.PIC]==ParticleIC.RANDOM:
 				self[GPK.NSPEC] = int(l[2])
+			elif l[0] == "Energy":
+				if l[2] == "True":
+					self[GPK.ENERGY] = True
+					self[GPK.ENERGYF] = 1
+				elif l[2] == "False":
+					self[GPK.ENERGY] = False
+					self[GPK.ENERGYF] = 0
+			elif l[0] == "EnergyF" and self[GPK.ENERGY] == True:
+				self[GPK.ENERGYF] = int(l[2])
 			else:
 				raise Exception("Parameter not used", l[0])
 
@@ -175,3 +193,5 @@ class GlobalParams(dict):
 	def set_global(self, comm, rank):
 		for k in list(GPK):
 			self[k] = comm.bcast(self[k], root=0)
+		self[GPK.BBOX] = GlobalBbox(comm, self[GPK.BBOX][0], self[GPK.BBOX][1])
+		
