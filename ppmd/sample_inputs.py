@@ -5,9 +5,9 @@ import random
 from scipy.spatial import Rectangle
 
 ns = [100]
-ms = [1, 1.8362e3]
-qs = [-1.0, 1.0]
-bbox = Rectangle([0, 0, 0], [1.0, 1.0, 1.0])
+ms = [9.1094e-31, 1.6726e-27]
+qs = [-1.6022e-19, 1.6022e-19]
+bbox = Rectangle([0, 0, 0], [1.0e-5, 1.0e-5, 1.0e-5])
 vmin = np.array([0.0, 0.0, 0.0])
 vmax = np.array([500, 500, 500])
 

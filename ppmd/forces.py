@@ -49,7 +49,7 @@ class CPUExactForceCalculator(object):
         #number of particles im about to get
         npart = CPUExactForceCalculator.get_npart(gcomm, urank, len(lpart.ids))
         nltypes_buf = np.zeros(npart, dtype=int)
-        nlrs_buf = np.zeros((npart, lpart.shape[1]))
+        nlrs_buf = np.zeros((npart, lpart.rs.shape[1]))
         #send types to urank, recv types from lrank
         gcomm.Sendrecv(lpart.types, urank, recvbuf=nltypes_buf)
         #send positions and receive, destinations/sources as above

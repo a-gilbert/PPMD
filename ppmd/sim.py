@@ -25,6 +25,8 @@ class SimSystem(object):
 			self.loc_bbox = self.init_fixed_grid(gcomm)
 		self.loc_particles = self.init_particles(gcomm)
 		self.data_manager.write_data(gcomm, self._sim_params, self.loc_bbox, self.loc_particles)
+		while self._sim_params[GPK.NSTEPS] - self._sim_params[GPK.CSTEP] > 0:
+			self.step(gcomm, units)
 
 	def init_fixed_grid(self, gcomm):
 		rank = gcomm.Get_rank()
@@ -61,7 +63,7 @@ class SimSystem(object):
 			gcomm.allreduce(loc_npart)
 			self._sim_params[GPK.NPART] = loc_npart[0]
 			return loc_particles
-		elif self._sim_params[GPK.PIC][0] == ParicleIC.RESTART:
+		elif self._sim_params[GPK.PIC][0] == ParticleIC.RESTART:
 			pass
 		
 
@@ -85,7 +87,8 @@ class SimSystem(object):
 				print("How did you get here?!")
 		self.loc_particles.integrate_vhalf()
 		self.loc_particles.get_lkinetic_energy()
-		self._sim_params[GPK.CSTEP] -= 1
+		self._sim_params[GPK.CSTEP] += 1
+		self.data_manager.update(self._sim_params)
 		self.data_manager.write_data(gcomm, self._sim_params, self.loc_bbox, 
 		self.loc_particles)
 		
