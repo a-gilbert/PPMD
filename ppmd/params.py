@@ -1,7 +1,7 @@
 """Various enums and dicts to define the meta-state of a simulation."""
 import numpy as np
 from enum import Enum
-from region import GlobalBbox
+from ppmd.region import GlobalBbox
 
 
 class RefineCriteria(Enum):
@@ -22,8 +22,9 @@ class Units(Enum):
 
 class PartitionScheme(Enum):
 	NONE = 0
-	TREE = 1
-	FOREST = 2
+	GRID = 1
+	TREE = 2
+	FOREST = 3
 
 
 class SpatialBoundaries(Enum):
@@ -37,8 +38,8 @@ class ForceBoundaries(Enum):
 
 
 class ParticleIC(Enum):
-	RANDOM = 0
-	CUSTOM = 1
+	CUSTOM = 0
+	RESTART = 1
 
 
 class GPK(Enum):
@@ -133,15 +134,19 @@ class GlobalParams(dict):
 			elif l[0] == "PartitionType":
 				if l[2] == "None":
 					self[GPK.PSCHEME] = PartitionScheme.NONE
+				if l[2] == "Grid":
+					self[GPK.PSCHEME] = PartitionScheme.GRID
 				if l[2] == "Tree":
 					self[GPK.PSCHEME] = PartitionScheme.TREE
 				if l[2] == "Forest":
 					self[GPK.PSCHEME] = PartitionScheme.FOREST
 			elif l[0] == "ParticleIC":
-				if l[2] == "Random":
-					self[GPK.PIC] = ParticleIC.RANDOM
-				else:
-					self[GPK.PIC] = (ParticleIC.CUSTOM, l[2])
+				if l[2] == "Custom":
+					self[GPK.PIC] = (ParticleIC.CUSTOM, l[3])
+					self[GPK.NPART] = 0
+					self[GPK.NSPEC] = 0
+				elif l[2] == "Restart":
+					self[GPK.PIC] = (ParticleIC.RESTART, l[3])
 					self[GPK.NPART] = 0
 					self[GPK.NSPEC] = 0
 			elif l[0] == "Refinement":
@@ -173,10 +178,6 @@ class GlobalParams(dict):
 					self[GPK.GPUS] = True
 				elif l[2] == "False":
 					self[GPK.GPUS] = False
-			elif l[0] == "NParticles" and self[GPK.PIC]==ParticleIC.RANDOM:
-				self[GPK.NPART] = int(l[2])
-			elif l[0] == "NSpec" and self[GPK.PIC]==ParticleIC.RANDOM:
-				self[GPK.NSPEC] = int(l[2])
 			elif l[0] == "Energy":
 				if l[2] == "True":
 					self[GPK.ENERGY] = True
@@ -194,4 +195,3 @@ class GlobalParams(dict):
 		for k in list(GPK):
 			self[k] = comm.bcast(self[k], root=0)
 		self[GPK.BBOX] = GlobalBbox(comm, self[GPK.BBOX][0], self[GPK.BBOX][1])
-		
