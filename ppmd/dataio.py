@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 from ppmd.params import GPK, RefineCriteria, ForceType, Units, PartitionScheme, \
-SpatialBoundaries, ForceBoundaries, ParticleIC
+SpatialBoundaries, ParticleIC
 
 
 class DataManager(object):
@@ -33,10 +33,6 @@ class DataManager(object):
             gref.attrs['SpatialBC'] = np.string_('Fixed')
         elif params[GPK.SBTYPE] == SpatialBoundaries.PERIODIC:
             gref.attrs['SpatialBC'] = np.string_('Periodic')
-        if params[GPK.FBTYPE] == ForceBoundaries.FIXED:
-            gref.attrs['ForceBC'] = np.string_('Fixed')
-        elif params[GPK.FBTYPE] == ForceBoundaries.PERIODIC:
-            gref.attrs['ForceBC'] = np.string_('Periodic')
         if params[GPK.PSCHEME] == PartitionScheme.NONE:
             gref.attrs['PartitionScheme'] = np.string_('None')
         elif params[GPK.PSCHEME] == PartitionScheme.GRID:
@@ -59,9 +55,7 @@ class DataManager(object):
         gref.attrs['cstep'] = params[GPK.CSTEP]
         gref.attrs['ctime'] = params[GPK.DT]*params[GPK.CSTEP]
         gref.attrs['npart'] = tpart
-        if params[GPK.ENERGY] == True:
-            if params[GPK.CSTEP] % params[GPK.ENERGYF] == 0:
-                gref.attrs['energy'] = tenergy
+        gref.attrs['energy'] = tenergy
         gref.attrs['nspec'] = params[GPK.NSPEC]
         gref.attrs['spec_masses'] = masses
         gref.attrs['spec_charges'] = qs
@@ -70,13 +64,16 @@ class DataManager(object):
 
 
     #currently serialized since h5py is being difficult
-    def write_data(self, gcomm, params, bbox, particles):
+    def swrite_data(self, gcomm, params, bbox, particles, write_energy):
         gcomm.Barrier()
         if gcomm.Get_rank() == 0:
             print("At serialized IO.")
         #collectives require everyone to call the function.
-        en = particles.get_total_energy(gcomm)
-        np = particles.get_total_particles(gcomm)
+        if write_energy:
+            ten = particles.get_total_energy(gcomm)
+        else:
+            ten = np.string_('not calculated')
+        tpart = particles.get_total_particles(gcomm)
         if gcomm.Get_rank() == 0:
             f = h5py.File(self.fn, 'a')
             if params[GPK.OUTUN] == True:
@@ -86,7 +83,7 @@ class DataManager(object):
             simg = g.create_group("SimParams")
             for i in range(gcomm.Get_size()):
                 g.create_group("Rank%08d" % i)
-            self._write_sim_data(simg, params, en, np, particles.ms, 
+            self._write_sim_data(simg, params, ten, tpart, particles.ms, 
                 particles.qs)
             f.flush()
             f.close()
@@ -108,5 +105,42 @@ class DataManager(object):
                 f.flush()
                 f.close()
             gcomm.Barrier()
+
+    def pwrite_data(self, gcomm, params, bbox, particles, write_energy):
+        gcomm.Barrier()
         if gcomm.Get_rank() == 0:
-            print("IO finished.")
+            print("At IO.")
+        #collectives require everyone to call the function.
+        if write_energy:
+            ten = particles.get_total_energy(gcomm)
+        else:
+            ten = np.string_('not calculated')
+        tpart = particles.get_total_particles(gcomm)
+        f = h5py.File(self.fn, 'a', driver='mpio', comm=gcomm)
+        if params[GPK.OUTUN] == True:
+            g = f.create_group("DD%08d" % params[GPK.CSTEP])
+        else:
+            g = f
+        simg = g.create_group("SimParams")
+        for i in range(gcomm.Get_size()):
+            g.create_group("Rank%08d" % i)
+        if gcomm.Get_rank() == 0:
+            self._write_sim_data(simg, params, ten, tpart, particles.ms, 
+            particles.qs)
+        f.flush()
+        my_g = g['Rank%08d' % gcomm.Get_rank()]
+        my_g.attrs['bbox'] = [bbox.mins, bbox.maxes]
+        my_g.attrs['npart'] = len(particles.types)
+        my_g.create_dataset("ids", data=particles.ids)
+        my_g.create_dataset("types", data=particles.types)
+        my_g.create_dataset("rs", data=particles.rs)
+        my_g.create_dataset("vs", data=particles.vs)
+        my_g.create_dataset("fs", data=particles.fs)
+        f.flush()
+        f.close()
+
+    def write_data(self, gcomm, params, bbox, particles, write_energy):
+        if params[GPK.PIO]:
+            self.pwrite_data(gcomm, params, bbox, particles, write_energy)
+        elif not params[GPK.PIO]:
+            self.swrite_data(gcomm, params, bbox, particles, write_energy)

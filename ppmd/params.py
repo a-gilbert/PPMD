@@ -32,11 +32,6 @@ class SpatialBoundaries(Enum):
 	PERIODIC = 1
 
 
-class ForceBoundaries(Enum):
-	FIXED = 0
-	PERIODIC = 1
-
-
 class ParticleIC(Enum):
 	CUSTOM = 0
 	RESTART = 1
@@ -47,7 +42,6 @@ class GPK(Enum):
 	DIMS = 1
 	BBOX = 2
 	SBTYPE = 3
-	FBTYPE = 4
 	FTYPE = 5
 	PSCHEME = 6
 	PIC = 7
@@ -63,6 +57,7 @@ class GPK(Enum):
 	GPUS = 17
 	ENERGY = 18
 	ENERGYF = 19
+	PIO = 20
 
 
 class GlobalParams(dict):
@@ -121,11 +116,6 @@ class GlobalParams(dict):
 					self[GPK.SBTYPE] = SpatialBoundaries.FIXED
 				if l[2] == "Periodic":
 					self[GPK.SBTYPE] = SpatialBoundaries.PERIODIC
-			elif l[0] == "ForceBC":
-				if l[2] == "Fixed":
-					self[GPK.FBTYPE] = ForceBoundaries.FIXED
-				if l[2] == "Periodic":
-					self[GPK.FBTYPE] = ForceBoundaries.PERIODIC
 			elif l[0] == "ForceType":
 				if l[2] == "Exact":
 					self[GPK.FTYPE] = ForceType.EXACT
@@ -187,6 +177,11 @@ class GlobalParams(dict):
 					self[GPK.ENERGYF] = 0
 			elif l[0] == "EnergyF" and self[GPK.ENERGY] == True:
 				self[GPK.ENERGYF] = int(l[2])
+			elif l[0] == "ParallelIO":
+				if l[2] == "True":
+					self[GPK.PIO] = True
+				elif l[2] == "False":
+					self[GPK.PIO] = False
 			else:
 				raise Exception("Parameter not used", l[0])
 

@@ -1,16 +1,16 @@
 """Module for a number of different force calculations"""
 import numpy as np
 
-class CPUExactForceCalculator(object):
+class CPUFBExactForceCalculator(object):
 
     @classmethod
     def run(cls, gcomm, lpart, units, calc_energy):
         lpart.fs[:, :] = 0.0
         if calc_energy:
             lpart.energy = 0.0
-        CPUExactForceCalculator.get_loc_force(lpart, units, calc_energy)
+        CPUFBExactForceCalculator.get_loc_force(lpart, units, calc_energy)
         if gcomm.Get_size() > 1:
-            CPUExactForceCalculator.get_all_nloc_force(gcomm, lpart, units, 
+            CPUFBExactForceCalculator.get_all_nloc_force(gcomm, lpart, units, 
             calc_energy)
 
     @classmethod
@@ -39,7 +39,7 @@ class CPUExactForceCalculator(object):
         for i in range(niter):
             urank = (i + my_rank + 1)%s
             lrank = (my_rank - i - 1)%s
-            CPUExactForceCalculator.get_nloc_force(gcomm, urank, lrank, lpart, 
+            CPUFBExactForceCalculator.get_nloc_force(gcomm, urank, lrank, lpart, 
             units, calc_energy)
 
 
@@ -47,7 +47,7 @@ class CPUExactForceCalculator(object):
     @classmethod
     def get_nloc_force(cls, gcomm, urank, lrank, lpart, units, calc_energy):
         #number of particles im about to get
-        npart = CPUExactForceCalculator.get_npart(gcomm, urank, len(lpart.ids))
+        npart = CPUFBExactForceCalculator.get_npart(gcomm, urank, len(lpart.ids))
         nltypes_buf = np.zeros(npart, dtype=int)
         nlrs_buf = np.zeros((npart, lpart.rs.shape[1]))
         #send types to urank, recv types from lrank
@@ -56,7 +56,7 @@ class CPUExactForceCalculator(object):
         gcomm.Sendrecv(lpart.rs, urank, recvbuf=nlrs_buf)
         #calc forces
         case = urank==lrank and gcomm.Get_rank()<urank
-        CPUExactForceCalculator.get_force(lpart, nltypes_buf, nlrs_buf, units, 
+        CPUFBExactForceCalculator.get_force(lpart, nltypes_buf, nlrs_buf, units, 
         calc_energy, case)
         #buf to get force from higher rank
         nlforce_buf = np.zeros(lpart.fs.shape)

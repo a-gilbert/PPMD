@@ -5,7 +5,7 @@ SpatialBoundaries, ForceType
 from ppmd.region import Bbox
 from ppmd.dataio import DataManager
 from ppmd.particles import Particles
-from ppmd.forces import CPUExactForceCalculator
+from ppmd.forces import CPUFBExactForceCalculator
 
 
 
@@ -24,7 +24,14 @@ class SimSystem(object):
 		elif self._sim_params[GPK.PSCHEME] == PartitionScheme.FOREST:
 			self.loc_bbox = self.init_fixed_grid(gcomm)
 		self.loc_particles = self.init_particles(gcomm)
-		self.data_manager.write_data(gcomm, self._sim_params, self.loc_bbox, self.loc_particles)
+		self.init_force()
+		self.force_calc.run(gcomm, self.loc_particles, units, 
+		self._sim_params[GPK.ENERGY])
+		calc_energy = self._sim_params[GPK.ENERGY]
+		if calc_energy:
+			self.loc_particles.add_lkinetic_energy()
+		self.data_manager.write_data(gcomm, self._sim_params, self.loc_bbox, 
+		self.loc_particles, calc_energy)
 		while self._sim_params[GPK.NSTEPS] - self._sim_params[GPK.CSTEP] > 0:
 			self.step(gcomm, units)
 
@@ -65,6 +72,33 @@ class SimSystem(object):
 			return loc_particles
 		elif self._sim_params[GPK.PIC][0] == ParticleIC.RESTART:
 			pass
+
+	
+	def init_force(self):
+		if self._sim_params[GPK.FTYPE] == ForceType.EXACT:
+			if self._sim_params[GPK.SBTYPE] == SpatialBoundaries.PERIODIC:
+				if self._sim_params[GPK.GPUS] == False:
+					pass
+				elif self._sim_params[GPK.GPUS] == True:
+					pass
+			elif self._sim_params[GPK.SBTYPE] == SpatialBoundaries.FIXED:
+				if self._sim_params[GPK.GPUS] == False:
+					self.force_calc = CPUFBExactForceCalculator
+				if self._sim_params[GPK.GPUS] == True:
+					pass
+			elif self._sim_params[GPK.GPUS] == True:
+				pass
+		elif self._sim_params[GPK.FTYPE] == ForceType.FMM:
+			if self._sim_params[GPK.SBTYPE] == SpatialBoundaries.PERIODIC:
+				if self._sim_params[GPK.GPUS] == False:
+					pass
+				elif self._sim_params[GPK.GPUS] == True:
+					pass
+			elif self._sim_params[GPK.SBTYPE] == SpatialBoundaries.FIXED:
+				if self._sim_params[GPK.GPUS] == False:
+					pass
+				elif self._sim_params[GPK.GPUS] == True:
+					pass
 		
 
 	def step(self, gcomm, units):
@@ -74,21 +108,14 @@ class SimSystem(object):
 			self.loc_particles.make_periodic(self._sim_params[GPK.BBOX])
 		calc_energy = self._sim_params[GPK.ENERGY]
 		if calc_energy:
-			calc_energy = self._sim_params[GPK.CSTEP]%self._sim_params[GPK.ENERGYF]
-		if self._sim_params[GPK.FTYPE] == ForceType.EXACT:
-			if self._sim_params[GPK.GPUS] == False:
-				CPUExactForceCalculator.run(gcomm, self.loc_particles, units, calc_energy)	
-			else:
-				pass
-		elif self._sim_params[GPK.FTYPE] == ForceType.FMM:
-			pass
-		else:
-			if gcomm.Get_rank() == 0:
-				print("How did you get here?!")
+			calc_energy = self._sim_params[GPK.CSTEP]%self._sim_params[GPK.ENERGYF]==0
+		self.force_calc.run(gcomm, self.loc_particles, units, calc_energy)
 		self.loc_particles.integrate_vhalf()
-		self.loc_particles.get_lkinetic_energy()
+		if calc_energy:
+			self.loc_particles.add_lkinetic_energy()
 		self._sim_params[GPK.CSTEP] += 1
 		self.data_manager.update(self._sim_params)
 		self.data_manager.write_data(gcomm, self._sim_params, self.loc_bbox, 
-		self.loc_particles)
-		
+		self.loc_particles, calc_energy)
+		if gcomm.Get_rank() == 0:
+			print("On step %d" % self._sim_params[GPK.CSTEP])

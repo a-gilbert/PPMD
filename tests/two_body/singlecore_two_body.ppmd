@@ -1,0 +1,19 @@
+Units = none
+Dimensions = 3
+Box = -4.0 -4.0 -4.0 4.0 4.0 4.0
+SpaceBC = Fixed
+ForceType = Exact
+# Refinement command not always used, but always necessary.
+# (due to bad programming)
+Refinement = Depth 2 Density 0.1
+PartitionType = None
+ParticleIC = Custom two_body.hdf5
+NSteps = 100
+OutUnited = False
+OutFreq = 1
+OutFn = sDD
+ParallelIO = False
+GPUS = False
+Energy = True
+EnergyF = 1
+dt = 0.001
