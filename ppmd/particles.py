@@ -55,11 +55,11 @@ class Particles(object):
 			my_vs = np.array(f['particles']['vs'][my_li:my_ui]).astype(float)
 			my_fs = np.zeros(my_vs.shape)
 		else:
-			my_ids = np.array([])
-			my_types = np.array([])
-			my_rs = np.array([])
-			my_vs = np.array([])
-			my_fs = np.array([]) 
+			my_ids = np.empty((1,), dtype=int)
+			my_types = np.empty((1,), dtype=int)
+			my_rs = np.empty((1, params[GPK.DIMS]))
+			my_vs = np.empty_like(my_rs)
+			my_fs = np.empty_like(my_rs)
 		return Particles(my_ms, my_qs, my_ids, my_types, my_rs, my_vs, my_fs, params[GPK.DT])
 
 	def integrate_vhalf(self):
