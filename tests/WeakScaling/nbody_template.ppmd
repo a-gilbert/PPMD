@@ -7,11 +7,11 @@ ForceType = Exact
 # (due to bad programming)
 Refinement = Depth 2 Density 0.1
 PartitionType = None
-ParticleIC = Custom two_body.hdf5
-NSteps = 15000
+ParticleIC = Custom
+NSteps = 1
 OutUnited = False
 OutFreq = 1
-OutFn = DD
+OutFn = scts1DD
 ParallelIO = False
 GPUS = False
 Energy = True

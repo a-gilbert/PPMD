@@ -4,7 +4,6 @@ import h5py
 import random
 from scipy.spatial import Rectangle
 
-ns = [100]
 ms = [1, 1836.2]
 qs = [-1, 1]
 bbox = Rectangle([0, 0, 0], [1, 1, 1])
@@ -12,6 +11,7 @@ vmin = np.array([0.0, 0.0, 0.0])
 vmax = np.array([500, 500, 500])
 
 out = sys.argv[1]
+ns = int(sys.argv[2])
 
 def globally_uniform(ms, qs, n, bbox, vmin, vmax):
     f = h5py.File('uniform_random_%dtypes_%dpart.hdf5' % (len(ms), n), 'w')
@@ -61,8 +61,7 @@ def two_body(ms, qs, bbox, ve):
 
 def main():
     if out == 'globally_uniform':
-        for n in ns:
-            globally_uniform(ms, qs, n, bbox, vmin, vmax)
+        globally_uniform(ms, qs, ns, bbox, vmin, vmax)
     elif out == 'two_body':
         s = 1/np.sqrt(2)
         ve = np.array([-s, s, 0.0])

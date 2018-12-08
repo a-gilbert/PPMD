@@ -30,6 +30,7 @@ class PartitionScheme(Enum):
 class SpatialBoundaries(Enum):
 	FIXED = 0
 	PERIODIC = 1
+	FREE = 2
 
 
 class ParticleIC(Enum):
@@ -55,9 +56,11 @@ class GPK(Enum):
 	NPART = 15
 	NSPEC = 16
 	GPUS = 17
-	ENERGY = 18
-	ENERGYF = 19
-	PIO = 20
+	GPU_GRID = 18
+	GPU_BLOCK = 19
+	ENERGY = 20
+	ENERGYF = 21
+	PIO = 22
 
 
 class GlobalParams(dict):
@@ -116,6 +119,8 @@ class GlobalParams(dict):
 					self[GPK.SBTYPE] = SpatialBoundaries.FIXED
 				if l[2] == "Periodic":
 					self[GPK.SBTYPE] = SpatialBoundaries.PERIODIC
+				if l[2] == "Free":
+					self[GPK.SBTYPE] = SpatialBoundaries.FREE
 			elif l[0] == "ForceType":
 				if l[2] == "Exact":
 					self[GPK.FTYPE] = ForceType.EXACT
@@ -168,6 +173,8 @@ class GlobalParams(dict):
 					self[GPK.GPUS] = True
 				elif l[2] == "False":
 					self[GPK.GPUS] = False
+					self[GPK.GPU_BLOCK] = 0
+					self[GPK.GPU_GRID] = 0
 			elif l[0] == "Energy":
 				if l[2] == "True":
 					self[GPK.ENERGY] = True
@@ -182,6 +189,10 @@ class GlobalParams(dict):
 					self[GPK.PIO] = True
 				elif l[2] == "False":
 					self[GPK.PIO] = False
+			elif l[0] == "GPU_Grid" and self[GPK.GPUS]==True:
+				self[GPK.GPU_GRID] = (int(l[2]), 1, 1)
+			elif l[0] == "GPU_Block" and self[GPK.GPUS]==True:
+				self[GPK.GPU_BLOCK] = (int(l[2]), 1, 1)
 			else:
 				raise Exception("Parameter not used", l[0])
 

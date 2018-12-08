@@ -5,7 +5,7 @@ SpatialBoundaries, ForceType
 from ppmd.region import Bbox
 from ppmd.dataio import DataManager
 from ppmd.particles import Particles
-from ppmd.forces import CPUFBExactForceCalculator
+from ppmd.forces import CPUFrBExactForceCalculator
 
 
 
@@ -76,28 +76,14 @@ class SimSystem(object):
 	
 	def init_force(self):
 		if self._sim_params[GPK.FTYPE] == ForceType.EXACT:
-			if self._sim_params[GPK.SBTYPE] == SpatialBoundaries.PERIODIC:
-				if self._sim_params[GPK.GPUS] == False:
-					pass
-				elif self._sim_params[GPK.GPUS] == True:
-					pass
-			elif self._sim_params[GPK.SBTYPE] == SpatialBoundaries.FIXED:
-				if self._sim_params[GPK.GPUS] == False:
-					self.force_calc = CPUFBExactForceCalculator
-				if self._sim_params[GPK.GPUS] == True:
-					pass
+			if self._sim_params[GPK.GPUS] == False:
+				self.force_calc = CPUFrBExactForceCalculator()
 			elif self._sim_params[GPK.GPUS] == True:
 				pass
 		elif self._sim_params[GPK.FTYPE] == ForceType.FMM:
-			if self._sim_params[GPK.SBTYPE] == SpatialBoundaries.PERIODIC:
-				if self._sim_params[GPK.GPUS] == False:
+			if self._sim_params[GPK.GPUS] == False:
 					pass
-				elif self._sim_params[GPK.GPUS] == True:
-					pass
-			elif self._sim_params[GPK.SBTYPE] == SpatialBoundaries.FIXED:
-				if self._sim_params[GPK.GPUS] == False:
-					pass
-				elif self._sim_params[GPK.GPUS] == True:
+			elif self._sim_params[GPK.GPUS] == True:
 					pass
 		
 
@@ -106,6 +92,8 @@ class SimSystem(object):
 		self.loc_particles.integrate_pos()
 		if self._sim_params[GPK.SBTYPE] == SpatialBoundaries.PERIODIC:
 			self.loc_particles.make_periodic(self._sim_params[GPK.BBOX])
+		elif self._sim_params[GPK.SBTYPE] == SpatialBoundaries.FIXED:
+			pass
 		calc_energy = self._sim_params[GPK.ENERGY]
 		if calc_energy:
 			calc_energy = self._sim_params[GPK.CSTEP]%self._sim_params[GPK.ENERGYF]==0

@@ -1,17 +1,17 @@
 Units = none
 Dimensions = 3
 Box = -4.0 -4.0 -4.0 4.0 4.0 4.0
-SpaceBC = Fixed
+SpaceBC = Free
 ForceType = Exact
 # Refinement command not always used, but always necessary.
 # (due to bad programming)
 Refinement = Depth 2 Density 0.1
 PartitionType = None
-ParticleIC = Custom two_body.hdf5
-NSteps = 15000
+ParticleIC = Custom uniform_random_2types_100part.hdf5
+NSteps = 20
 OutUnited = False
 OutFreq = 1
-OutFn = DD
+OutFn = mcts1DD
 ParallelIO = False
 GPUS = False
 Energy = True
